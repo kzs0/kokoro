@@ -3,6 +3,7 @@ package k
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
+
+var tracerName string = "kzs0/kokoro"
 
 type recorder struct {
 	successes metrics.Counter
@@ -102,11 +105,17 @@ func newRecorder() (*recorder, error) {
 
 type Done func(*context.Context, *error)
 
+type NoErrDone func(*context.Context)
+
+// Operation will bootstrap a short lived code path and report traces, metrics,
+// and logs automatically.
+//
+// An operation is assumed to have some failure condition due to side effects.
 func Operation(ctx context.Context, operation string) (context.Context, Done) {
 	ctx = initStack(ctx)
 	start := time.Now()
 
-	tracer := otel.Tracer("kzs0/kokoro")
+	tracer := otel.Tracer(tracerName)
 	ctx, _ = tracer.Start(ctx, operation)
 
 	r, err := newRecorder()
@@ -116,7 +125,7 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 	}
 
 	done := func(ctx *context.Context, err *error) {
-		stop := time.Since(dur)
+		stop := time.Since(start)
 
 		st, ok := pop(*ctx)
 		if !ok {
@@ -136,7 +145,12 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 		}
 
 		span := trace.SpanFromContext(*ctx)
-		span.SetStatus(codes.Ok, "success")
+		span.SetStatus(codes.Error, "error encountered")
+
+		if *err == nil {
+			// OK > Error so this will overwrite the previous status
+			span.SetStatus(codes.Ok, "success")
+		}
 
 		logs := log.WithLevel(level).
 			Dur("duration", time.Since(start)).
@@ -148,7 +162,7 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 		}
 		for k, i := range st.Ints {
 			logs = logs.Int64(k, i)
-			r.AddLabels(metrics.WithLabel(k, fmt.Sprintf(i)))
+			r.AddLabels(metrics.WithLabel(k, fmt.Sprint(i)))
 		}
 		for k, s := range st.Strs {
 			logs = logs.Str(k, s)
@@ -156,12 +170,12 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 		}
 		for k, b := range st.Bools {
 			logs = logs.Bool(k, b)
-			r.AddLabels(metrics.WithLabel(k, fmt.Sprintf(b)))
+			r.AddLabels(metrics.WithLabel(k, fmt.Sprint(b)))
 		}
 
 		if *err != nil {
 			logs = logs.Err(*err)
-			span.SetStatus(codes.Error, "error encountered")
+			span.RecordError(*err)
 		}
 
 		logs.Msg(operation)
@@ -169,8 +183,55 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 
 		rerr := r.Record(*ctx, stop, *err == nil)
 		if rerr != nil {
-			log.Debug.Msg("failed to record metrics for operation")
+			log.Debug().Msg("failed to record metrics for operation")
 		}
+	}
+
+	return ctx, done
+}
+
+func getCallerName() string {
+	pc, _, _, ok := runtime.Caller(2)
+	if !ok {
+		return "span"
+	}
+
+	funcDetails := runtime.FuncForPC(pc)
+	if funcDetails == nil {
+		return "span"
+	}
+
+	return funcDetails.Name()
+}
+
+// Pure will initiate a new span that cannot encounter an error during
+// operation
+func Pure(ctx context.Context) (context.Context, NoErrDone) {
+	tracer := otel.Tracer(tracerName)
+	ctx, span := tracer.Start(ctx, getCallerName())
+
+	done := func(ctx *context.Context) {
+		span.SetStatus(codes.Ok, "success")
+		span.End()
+	}
+
+	return ctx, done
+}
+
+// Impure will initiate a new span that can encounter an error during
+// operation
+func Impure(ctx context.Context) (context.Context, Done) {
+	tracer := otel.Tracer(tracerName)
+	ctx, span := tracer.Start(ctx, getCallerName())
+
+	done := func(ctx *context.Context, err *error) {
+		if *err == nil {
+			span.SetStatus(codes.Ok, "success")
+		} else {
+			span.SetStatus(codes.Error, "error encountered")
+			span.RecordError(*err)
+		}
+		span.End()
 	}
 
 	return ctx, done
