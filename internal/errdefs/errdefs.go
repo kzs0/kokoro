@@ -1,4 +1,4 @@
-package kokoro
+package errdefs
 
 import (
 	"fmt"
@@ -11,8 +11,6 @@ var (
 	ErrInitializationFailed externalErr = "failed to initialize kokoro"
 )
 
-func wrapErr(root externalErr, err error) error {
-	root = root + ": %w"
-
-	return fmt.Errorf(string(root), err)
+func WrapErr(root externalErr, err error) error {
+	return fmt.Errorf(string(root+": %w"), err)
 }

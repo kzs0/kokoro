@@ -1,9 +1,9 @@
 package kokoro
 
 import (
-	"github.com/kenzo-spaulding/kokoro/telemetry/logs"
-	"github.com/kenzo-spaulding/kokoro/telemetry/metrics"
-	"github.com/kenzo-spaulding/kokoro/telemetry/traces"
+	"github.com/kzs0/kokoro/telemetry/logs"
+	"github.com/kzs0/kokoro/telemetry/metrics"
+	"github.com/kzs0/kokoro/telemetry/traces"
 )
 
 type Config struct {

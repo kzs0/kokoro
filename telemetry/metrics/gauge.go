@@ -1,22 +1,51 @@
 package metrics
 
 import (
+	"context"
+	"fmt"
+	"strings"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
-// Gauge is under construction, open telemetry recently added support synchronous
-// gauges to the spec, and a PR to add support to the Go library is open.
-// This will be added once that PR is merged and released.
 type Gauge interface {
+	Loadable
+
+	// Measure will set the Gauge to the provided value
+	Measure(ctx context.Context, value float64, opts ...MeasurementOption) error
 }
 
 type DefaultGauge struct {
-	gauge        metric.Float64ObservableGauge
+	gauge        metric.Float64Gauge
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
 }
 
+func (g *DefaultGauge) Measure(ctx context.Context, value float64, opts ...MeasurementOption) error {
+	opt := metricOpts{}
+	for _, o := range opts {
+		o(&opt)
+	}
+
+	labels := g.staticLabels
+	for k, v := range opt.labels {
+		labels = append(labels, attribute.Key(k).String(v))
+	}
+
+	g.gauge.Record(ctx, value, metric.WithAttributeSet(attribute.NewSet(labels...)))
+
+	return nil
+}
+
+func (g *DefaultGauge) Load(opts ...MeasurementOption) {
+	g.opts = append(g.opts, opts...)
+}
+
+// NewGauge will produce a Gauge for setting an instantaneous value
+//
+// It will create a new gauge on first invocation, or return a cached gauge
+// previously created by name
 func (mf *DefaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Gauge, error) {
 	if g, ok := mf.gauges[name]; ok {
 		return g, nil
@@ -27,9 +56,11 @@ func (mf *DefaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Ga
 		o(&opt)
 	}
 
+	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
+
 	gauge := &DefaultGauge{}
 
-	otelOpts := make([]metric.Float64ObservableGaugeOption, 0)
+	otelOpts := make([]metric.Float64GaugeOption, 0)
 	if opt.desc != "" {
 		otelOpts = append(otelOpts, metric.WithDescription(opt.desc))
 	}
@@ -44,7 +75,7 @@ func (mf *DefaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Ga
 		gauge.staticLabels = attr
 	}
 
-	otelGauge, err := mf.meter.Float64ObservableGauge(name, otelOpts...)
+	otelGauge, err := mf.meter.Float64Gauge(name, otelOpts...)
 	if err != nil {
 		return nil, err
 	}

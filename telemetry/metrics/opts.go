@@ -1,5 +1,31 @@
 package metrics
 
+type factoryOpts struct {
+	staticLabels map[string]string
+	factory      Factory
+}
+
+type FactoryOption func(*factoryOpts)
+
+// WithStaticLabel allows setting labels that will be set on all metrics
+// created with the factory
+func WithStaticLabel(label, value string) FactoryOption {
+	return func(f *factoryOpts) {
+		if f.staticLabels == nil {
+			f.staticLabels = make(map[string]string)
+		}
+
+		f.staticLabels[label] = value
+	}
+}
+
+// WithFactory allows providing a custom factory to be used as the DefaultFactory
+func WithFactory(factory Factory) FactoryOption {
+	return func(f *factoryOpts) {
+		f.factory = factory
+	}
+}
+
 type metricOpts struct {
 	desc         string
 	unit         string
@@ -35,6 +61,7 @@ func WithStaticLabels(labels map[string]string) MetricOption {
 	}
 }
 
+// WithHistogramBucketsBounds allows to override the default bucket boundaries for a histogram
 func WithHistogramBucketsBounds(buckets ...float64) MetricOption {
 	return func(opts *metricOpts) {
 		opts.buckets = buckets

@@ -1,21 +1,22 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
+	"strings"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"golang.org/x/net/context"
 )
 
 type Counter interface {
+	Loadable
+
 	// Incr will increment the counter by 1
 	Incr(ctx context.Context, opts ...MeasurementOption) error
 
 	// Add will add the given addend to the counter
 	Add(ctx context.Context, addend float64, opts ...MeasurementOption) error
-
-	// Curry will curry the Counter with the MeasurementOption provided
-	Curry(opts ...MeasurementOption) Counter
 }
 
 type DefaultCounter struct {
@@ -48,9 +49,8 @@ func (c *DefaultCounter) Add(ctx context.Context, addend float64, opts ...Measur
 	return nil
 }
 
-func (c *DefaultCounter) Curry(opts ...MeasurementOption) Counter {
+func (c *DefaultCounter) Load(opts ...MeasurementOption) {
 	c.opts = append(c.opts, opts...)
-	return c
 }
 
 // NewCounter will produce a Counter for measuring values that go up
@@ -66,6 +66,8 @@ func (mf *DefaultMetricsFactory) NewCounter(name string, opts ...MetricOption) (
 	for _, o := range opts {
 		o(&opt)
 	}
+
+	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
 
 	counter := &DefaultCounter{}
 
