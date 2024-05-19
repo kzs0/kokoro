@@ -3,16 +3,17 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
 type Histogram interface {
+	Loadable
+
 	// Record will observe the measurement
 	Record(ctx context.Context, measurement float64, opts ...MeasurementOption) error
-
-	// Curry will curry the Histogram with the MeasurementOption provided
-	Curry(opts ...MeasurementOption) Histogram
 }
 
 type DefaultHistogram struct {
@@ -41,9 +42,8 @@ func (h *DefaultHistogram) Record(ctx context.Context, measurement float64, opts
 	return nil
 }
 
-func (h *DefaultHistogram) Curry(opts ...MeasurementOption) Histogram {
+func (h *DefaultHistogram) Load(opts ...MeasurementOption) {
 	h.opts = append(h.opts, opts...)
-	return h
 }
 
 // NewHistogram will produce a Histogram for observing values
@@ -58,6 +58,8 @@ func (mf *DefaultMetricsFactory) NewHistogram(name string, opts ...MetricOption)
 	for _, o := range opts {
 		o(&opt)
 	}
+
+	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
 
 	histogram := &DefaultHistogram{}
 

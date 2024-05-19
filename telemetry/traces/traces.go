@@ -2,6 +2,8 @@ package traces
 
 import (
 	"context"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
@@ -10,15 +12,25 @@ import (
 
 // TODO endpoint for pushing traces and whether to use stdouttrace
 type Traces struct {
+	Style string `env:"TRACES_EXPORTER" envDefault:"CONSOLE"`
 }
 
 func Init(ctx context.Context, config Traces) error {
-	exp, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	var exporter api.SpanExporter
+	var err error
+
+	switch strings.ToUpper(config.Style) {
+	case "CONSOLE":
+		exporter, err = stdouttrace.New(stdouttrace.WithPrettyPrint())
+	default:
+		exporter, err = stdouttrace.New(stdouttrace.WithPrettyPrint())
+	}
+
 	if err != nil {
 		return err
 	}
 
-	bsp := api.NewBatchSpanProcessor(exp)
+	bsp := api.NewBatchSpanProcessor(exporter)
 	provider := api.NewTracerProvider(
 		api.WithSampler(api.AlwaysSample()),
 		api.WithSpanProcessor(bsp),

@@ -2,10 +2,12 @@ package kokoro
 
 import (
 	"context"
+
 	"github.com/caarlos0/env/v11"
-	"github.com/kenzo-spaulding/kokoro/telemetry/logs"
-	"github.com/kenzo-spaulding/kokoro/telemetry/metrics"
-	"github.com/kenzo-spaulding/kokoro/telemetry/traces"
+	"github.com/kzs0/kokoro/internal/errdefs"
+	"github.com/kzs0/kokoro/telemetry/logs"
+	"github.com/kzs0/kokoro/telemetry/metrics"
+	"github.com/kzs0/kokoro/telemetry/traces"
 )
 
 type options struct {
@@ -41,7 +43,7 @@ func Init(opts ...Option) (Done, error) {
 	if opt.config == def {
 		err := env.Parse(&config)
 		if err != nil {
-			return nil, wrapErr(ErrEnvLoadFailed, err)
+			return nil, errdefs.WrapErr(errdefs.ErrEnvLoadFailed, err)
 		}
 	}
 
@@ -54,19 +56,19 @@ func Init(opts ...Option) (Done, error) {
 	err := logs.Init(config.Logs)
 	if err != nil {
 		cancel()
-		return nil, wrapErr(ErrInitializationFailed, err)
+		return nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
 	}
 
 	err = metrics.Init(config.Metrics)
 	if err != nil {
 		cancel()
-		return nil, wrapErr(ErrInitializationFailed, err)
+		return nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
 	}
 
 	err = traces.Init(ctx, config.Traces)
 	if err != nil {
 		cancel()
-		return nil, wrapErr(ErrInitializationFailed, err)
+		return nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
 	}
 
 	done := func() {
