@@ -30,7 +30,7 @@ func WithContext(ctx context.Context) Option {
 	}
 }
 
-func Init(opts ...Option) (Done, error) {
+func Init(opts ...Option) (context.Context, Done, error) {
 	opt := options{}
 	for _, o := range opts {
 		o(&opt)
@@ -43,7 +43,7 @@ func Init(opts ...Option) (Done, error) {
 	if opt.config == def {
 		err := env.Parse(&config)
 		if err != nil {
-			return nil, errdefs.WrapErr(errdefs.ErrEnvLoadFailed, err)
+			return ctx, nil, errdefs.WrapErr(errdefs.ErrEnvLoadFailed, err)
 		}
 	}
 
@@ -56,24 +56,24 @@ func Init(opts ...Option) (Done, error) {
 	err := logs.Init(config.Logs)
 	if err != nil {
 		cancel()
-		return nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
+		return ctx, nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
 	}
 
 	err = metrics.Init(config.Metrics)
 	if err != nil {
 		cancel()
-		return nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
+		return ctx, nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
 	}
 
 	err = traces.Init(ctx, config.Traces)
 	if err != nil {
 		cancel()
-		return nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
+		return ctx, nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
 	}
 
 	done := func() {
 		cancel()
 	}
 
-	return done, nil
+	return ctx, done, nil
 }
