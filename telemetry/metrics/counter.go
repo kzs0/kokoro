@@ -23,6 +23,7 @@ type DefaultCounter struct {
 	counter      metric.Float64Counter
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
+	labelNames   map[string]struct{}
 }
 
 func (c *DefaultCounter) Incr(ctx context.Context, opts ...MeasurementOption) error {
@@ -41,7 +42,11 @@ func (c *DefaultCounter) Add(ctx context.Context, addend float64, opts ...Measur
 
 	labels := c.staticLabels
 	for k, v := range opt.labels {
-		labels = append(labels, attribute.Key(k).String(v))
+		if c.labelNames != nil {
+			if _, ok := c.labelNames[k]; ok {
+				labels = append(labels, attribute.Key(k).String(v))
+			}
+		}
 	}
 
 	c.counter.Add(ctx, addend, metric.WithAttributeSet(attribute.NewSet(labels...)))
@@ -93,6 +98,15 @@ func (mf *DefaultMetricsFactory) NewCounter(name string, opts ...MetricOption) (
 
 	counter.counter = otelCounter
 	counter.opts = make([]MeasurementOption, 0)
+
+	labelNames := make(map[string]struct{})
+	if opt.labelNames != nil {
+		for _, label := range opt.labelNames {
+			labelNames[label] = struct{}{}
+		}
+	}
+
+	counter.labelNames = labelNames
 
 	if len(counter.staticLabels) == 0 {
 		counter.staticLabels = make([]attribute.KeyValue, 0)

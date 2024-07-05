@@ -31,6 +31,7 @@ type metricOpts struct {
 	unit         string
 	staticLabels map[string]string
 	labels       map[string]string
+	labelNames   []string
 	buckets      []float64
 	factory      Factory
 }
@@ -65,6 +66,17 @@ func WithStaticLabels(labels map[string]string) MetricOption {
 func WithHistogramBucketsBounds(buckets ...float64) MetricOption {
 	return func(opts *metricOpts) {
 		opts.buckets = buckets
+	}
+}
+
+// WithLabelNames sets the labels expected to be provided to the metric.
+//
+// Subsequent WithLabelNames will overwrite the previous set of names passed in.
+// Labels passed in that were not provided as a LabelName will be ignored.
+// Labels not passed in that were expected will result in an error being returned. // TODO <- This could also just fill in -?
+func WithLabelNames(labels []string) MetricOption {
+	return func(opts *metricOpts) {
+		opts.labelNames = labels
 	}
 }
 

@@ -9,6 +9,11 @@ import (
 	"github.com/rs/zerolog/pkgerrors"
 )
 
+// TODO move this over to using builtin slog
+// Make it configurable. Also figure out how logr can be plugged in
+// so if you already have stuff configured, your logr stuff will be used
+// under the hood despite me not needing to use it
+
 type Logs struct {
 	LogLevel         string `env:"LOG_LEVEL" envDefault:"INFO"`
 	LogTimestampUnit string `env:"LOG_TIMESTAMP_UNIT" envDefault:"MILLISECONDS"`

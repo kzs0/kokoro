@@ -20,6 +20,7 @@ type DefaultHistogram struct {
 	histogram    metric.Float64Histogram
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
+	labelNames   map[string]struct{}
 }
 
 func (h *DefaultHistogram) Record(ctx context.Context, measurement float64, opts ...MeasurementOption) error {
@@ -34,7 +35,11 @@ func (h *DefaultHistogram) Record(ctx context.Context, measurement float64, opts
 
 	labels := h.staticLabels
 	for k, v := range opt.labels {
-		labels = append(labels, attribute.Key(k).String(v))
+		if h.labelNames != nil {
+			if _, ok := h.labelNames[k]; ok {
+				labels = append(labels, attribute.Key(k).String(v))
+			}
+		}
 	}
 
 	h.histogram.Record(ctx, measurement, metric.WithAttributeSet(attribute.NewSet(labels...)))
@@ -88,6 +93,15 @@ func (mf *DefaultMetricsFactory) NewHistogram(name string, opts ...MetricOption)
 
 	histogram.histogram = otelHistogram
 	histogram.opts = make([]MeasurementOption, 0)
+
+	labelNames := make(map[string]struct{})
+	if opt.labelNames != nil {
+		for _, label := range opt.labelNames {
+			labelNames[label] = struct{}{}
+		}
+	}
+
+	histogram.labelNames = labelNames
 
 	if len(histogram.staticLabels) == 0 {
 		histogram.staticLabels = make([]attribute.KeyValue, 0)
