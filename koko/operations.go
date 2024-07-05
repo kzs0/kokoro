@@ -1,4 +1,4 @@
-package k
+package koko
 
 import (
 	"context"
@@ -33,7 +33,7 @@ func (r *recorder) AddLabels(opts ...metrics.MeasurementOption) {
 
 func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) error {
 	if success {
-		successes, err := NewCounter(fmt.Sprintf("%s_success"))
+		successes, err := Counter(fmt.Sprintf("%s_success"))
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,7 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		}
 
 	} else {
-		failures, err := NewCounter(fmt.Sprintf("%s_failures"))
+		failures, err := Counter(fmt.Sprintf("%s_failures"))
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		}
 	}
 
-	ops, err := NewCounter(fmt.Sprintf("%s_count"))
+	ops, err := Counter(fmt.Sprintf("%s_count"))
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		return err
 	}
 
-	timer, err := NewHistogram(fmt.Sprintf("%s_millis"))
+	timer, err := Histogram(fmt.Sprintf("%s_millis"))
 	err = timer.Record(ctx, float64(dur.Milliseconds()))
 	if err != nil {
 		return err
@@ -75,22 +75,22 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 }
 
 func newRecorder() (*recorder, error) {
-	successes, err := NewCounter(fmt.Sprintf("%s_success"))
+	successes, err := Counter(fmt.Sprintf("%s_success"))
 	if err != nil {
 		return nil, err
 	}
 
-	failures, err := NewCounter(fmt.Sprintf("%s_failures"))
+	failures, err := Counter(fmt.Sprintf("%s_failures"))
 	if err != nil {
 		return nil, err
 	}
 
-	count, err := NewCounter(fmt.Sprintf("%s_count"))
+	count, err := Counter(fmt.Sprintf("%s_count"))
 	if err != nil {
 		return nil, err
 	}
 
-	timer, err := NewHistogram(fmt.Sprintf("%s_millis"))
+	timer, err := Histogram(fmt.Sprintf("%s_millis"))
 	if err != nil {
 		return nil, err
 	}

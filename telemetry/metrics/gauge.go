@@ -20,6 +20,7 @@ type DefaultGauge struct {
 	gauge        metric.Float64Gauge
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
+	labelNames   map[string]struct{}
 }
 
 func (g *DefaultGauge) Measure(ctx context.Context, value float64, opts ...MeasurementOption) error {
@@ -30,7 +31,11 @@ func (g *DefaultGauge) Measure(ctx context.Context, value float64, opts ...Measu
 
 	labels := g.staticLabels
 	for k, v := range opt.labels {
-		labels = append(labels, attribute.Key(k).String(v))
+		if g.labelNames != nil {
+			if _, ok := g.labelNames[k]; ok {
+				labels = append(labels, attribute.Key(k).String(v))
+			}
+		}
 	}
 
 	g.gauge.Record(ctx, value, metric.WithAttributeSet(attribute.NewSet(labels...)))
@@ -82,6 +87,15 @@ func (mf *DefaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Ga
 
 	gauge.gauge = otelGauge
 	gauge.opts = make([]MeasurementOption, 0)
+
+	labelNames := make(map[string]struct{})
+	if opt.labelNames != nil {
+		for _, label := range opt.labelNames {
+			labelNames[label] = struct{}{}
+		}
+	}
+
+	gauge.labelNames = labelNames
 
 	if len(gauge.staticLabels) == 0 {
 		gauge.staticLabels = make([]attribute.KeyValue, 0)
