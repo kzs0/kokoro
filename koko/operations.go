@@ -18,6 +18,7 @@ import (
 var tracerName string = "kzs0/kokoro"
 
 type recorder struct {
+	operation string
 	successes metrics.Counter
 	failures  metrics.Counter
 	count     metrics.Counter
@@ -33,7 +34,7 @@ func (r *recorder) AddLabels(opts ...metrics.MeasurementOption) {
 
 func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) error {
 	if success {
-		successes, err := Counter(fmt.Sprintf("%s_success"))
+		successes, err := Counter(fmt.Sprintf("%s_success", r.operation))
 		if err != nil {
 			return err
 		}
@@ -44,7 +45,7 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		}
 
 	} else {
-		failures, err := Counter(fmt.Sprintf("%s_failures"))
+		failures, err := Counter(fmt.Sprintf("%s_failures", r.operation))
 		if err != nil {
 			return err
 		}
@@ -55,7 +56,7 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		}
 	}
 
-	ops, err := Counter(fmt.Sprintf("%s_count"))
+	ops, err := Counter(fmt.Sprintf("%s_count", r.operation))
 	if err != nil {
 		return err
 	}
@@ -65,7 +66,7 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		return err
 	}
 
-	timer, err := Histogram(fmt.Sprintf("%s_millis"))
+	timer, err := Histogram(fmt.Sprintf("%s_millis", r.operation))
 	err = timer.Record(ctx, float64(dur.Milliseconds()))
 	if err != nil {
 		return err
@@ -74,28 +75,29 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 	return nil
 }
 
-func newRecorder() (*recorder, error) {
-	successes, err := Counter(fmt.Sprintf("%s_success"))
+func newRecorder(op string) (*recorder, error) {
+	successes, err := Counter(fmt.Sprintf("%s_success", op))
 	if err != nil {
 		return nil, err
 	}
 
-	failures, err := Counter(fmt.Sprintf("%s_failures"))
+	failures, err := Counter(fmt.Sprintf("%s_failures", op))
 	if err != nil {
 		return nil, err
 	}
 
-	count, err := Counter(fmt.Sprintf("%s_count"))
+	count, err := Counter(fmt.Sprintf("%s_count", op))
 	if err != nil {
 		return nil, err
 	}
 
-	timer, err := Histogram(fmt.Sprintf("%s_millis"))
+	timer, err := Histogram(fmt.Sprintf("%s_millis", op))
 	if err != nil {
 		return nil, err
 	}
 
 	return &recorder{
+		operation: op,
 		successes: successes,
 		failures:  failures,
 		count:     count,
@@ -118,7 +120,7 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 	tracer := otel.Tracer(tracerName)
 	ctx, _ = tracer.Start(ctx, operation)
 
-	r, err := newRecorder()
+	r, err := newRecorder(operation)
 	if err != nil {
 		log.Debug().Err(err).Msg("failed to create metrics")
 		return ctx, func(ctx *context.Context, err *error) {}

@@ -54,7 +54,7 @@ func Init(config Metrics, options ...FactoryOption) error {
 	}
 
 	provider := api.NewMeterProvider(api.WithReader(exporter))
-	meter := provider.Meter("github.com/kenzo-spaulding/kokoro")
+	meter := provider.Meter("github.com/kzs0/kokoro")
 
 	static := map[string]string{
 		"service": config.ServiceName,
