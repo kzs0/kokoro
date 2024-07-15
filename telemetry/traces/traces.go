@@ -2,6 +2,7 @@ package traces
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -27,7 +28,7 @@ func Init(ctx context.Context, config Traces) error {
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load trace exporter: %w", err)
 	}
 
 	bsp := api.NewBatchSpanProcessor(exporter)

@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -29,7 +30,7 @@ func parse(level string) (zerolog.Level, error) {
 func Init(config Logs) error {
 	level, err := parse(config.LogLevel)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse log level %s: %w", config.LogLevel, err)
 	}
 
 	zerolog.SetGlobalLevel(level)
@@ -49,7 +50,7 @@ func Init(config Logs) error {
 	}
 
 	if config.Pretty {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
 	log.Logger = log.With().Timestamp().Caller().
