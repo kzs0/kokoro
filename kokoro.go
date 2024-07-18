@@ -30,7 +30,7 @@ func WithContext(ctx context.Context) Option {
 	}
 }
 
-func Init(opts ...Option) (context.Stdoutxt, Done, error) {
+func Init(opts ...Option) (context.Context, Done, error) {
 	opt := options{}
 	for _, o := range opts {
 		o(&opt)
