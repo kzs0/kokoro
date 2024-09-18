@@ -2,9 +2,9 @@ package kokoro
 
 import (
 	"context"
+	"errors"
 
 	"github.com/caarlos0/env/v11"
-	"github.com/kzs0/kokoro/internal/errdefs"
 	"github.com/kzs0/kokoro/telemetry/logs"
 	"github.com/kzs0/kokoro/telemetry/metrics"
 	"github.com/kzs0/kokoro/telemetry/traces"
@@ -43,7 +43,7 @@ func Init(opts ...Option) (context.Context, Done, error) {
 	if opt.config == def {
 		err := env.Parse(&config)
 		if err != nil {
-			return ctx, nil, errdefs.WrapErr(errdefs.ErrEnvLoadFailed, err)
+			return ctx, nil, errors.Join(ErrEnvLoadFailed, err)
 		}
 	}
 
@@ -56,19 +56,19 @@ func Init(opts ...Option) (context.Context, Done, error) {
 	err := logs.Init(config.Logs)
 	if err != nil {
 		cancel()
-		return ctx, nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
+		return ctx, nil, errors.Join(ErrInitializationFailed, err)
 	}
 
 	err = metrics.Init(config.Metrics)
 	if err != nil {
 		cancel()
-		return ctx, nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
+		return ctx, nil, errors.Join(ErrInitializationFailed, err)
 	}
 
 	err = traces.Init(ctx, config.Traces)
 	if err != nil {
 		cancel()
-		return ctx, nil, errdefs.WrapErr(errdefs.ErrInitializationFailed, err)
+		return ctx, nil, errors.Join(ErrInitializationFailed, err)
 	}
 
 	done := func() {
