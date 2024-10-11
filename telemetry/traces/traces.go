@@ -3,9 +3,9 @@ package traces
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	api "go.opentelemetry.io/otel/sdk/trace"
@@ -43,7 +43,8 @@ func Init(ctx context.Context, config Traces) error {
 		case <-ctx.Done():
 			err = provider.Shutdown(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("failed to shutdown trace provider")
+				slog.Error("faield to shutdown trace provider",
+					slog.String("error", err.Error()))
 			}
 		}
 	}()

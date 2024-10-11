@@ -1,62 +1,70 @@
 package logs
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
-
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"github.com/rs/zerolog/pkgerrors"
 )
 
-// TODO move this over to using builtin slog
-// Make it configurable. Also figure out how logr can be plugged in
-// so if you already have stuff configured, your logr stuff will be used
-// under the hood despite me not needing to use it
-
 type Logs struct {
-	LogLevel         string `env:"LOG_LEVEL" envDefault:"INFO"`
-	LogTimestampUnit string `env:"LOG_TIMESTAMP_UNIT" envDefault:"MILLISECONDS"`
-	Pretty           bool   `env:"PRETTY_LOGS" envDefault:"false"`
-	ServiceName      string `env:"SERVICE_NAME" envDefault:"_"`
-	Environment      string `env:"ENVIRONMENT" envDefault:"dev"`
+	LogLevel    string `env:"LOG_LEVEL" envDefault:"INFO"`
+	Pretty      bool   `env:"PRETTY_LOGS" envDefault:"false"`
+	ServiceName string `env:"SERVICE_NAME" envDefault:"_"`
+	Environment string `env:"ENVIRONMENT" envDefault:"dev"`
 }
 
-func parse(level string) (zerolog.Level, error) {
-	return zerolog.ParseLevel(strings.ToLower(level))
+var (
+	ErrInitFailed  = errors.New("failed to initialize logs")
+	ErrBadLogLevel = errors.New("invalid log level")
+)
+
+// Determines the log level from a provided string
+// The string is trimmed of whitespaced and converted to uppercase
+func ParseLevel(level string) (slog.Level, error) {
+	switch strings.TrimSpace(strings.ToUpper(level)) {
+	case "TRACE":
+	case "DEBUG":
+		return slog.LevelDebug, nil
+	case "INFO":
+		return slog.LevelInfo, nil
+	case "WARN":
+		return slog.LevelWarn, nil
+	case "ERROR":
+	case "FATAL":
+	case "PANIC":
+		return slog.LevelError, nil
+	default:
+	}
+
+	err := fmt.Errorf("%s is not a valid log level", level)
+	return slog.LevelInfo, errors.Join(ErrBadLogLevel, err)
 }
 
 func Init(config Logs) error {
-	level, err := parse(config.LogLevel)
+	level, err := parseLevel(config.LogLevel)
 	if err != nil {
-		return fmt.Errorf("failed to parse log level %s: %w", config.LogLevel, err)
+		return errors.Join(ErrInitFailed, err)
 	}
 
-	zerolog.SetGlobalLevel(level)
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
-
-	switch strings.ToUpper(config.LogTimestampUnit) {
-	case "SECONDS", "SECS", "SEC":
-		zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	case "MILLISECONDS", "MILLIS", "MILLI":
-		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
-	case "MICROSECONDS", "MICROS", "MICRO":
-		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMicro
-	case "NANOSECONDS", "NANOS", "NANO":
-		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixNano
-	default:
-		zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
-	}
+	opts := slog.HandlerOptions{AddSource: true}
+	var handler slog.Handler = slog.NewJSONHandler(os.Stdout, &opts)
 
 	if config.Pretty {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+		handler = slog.NewTextHandler(os.Stdout, &opts)
 	}
 
-	log.Logger = log.With().Timestamp().Caller().
-		Str("service", config.ServiceName).
-		Str("env", config.Environment).
-		Logger()
+	defaultAttrs := []slog.Attr{
+		slog.String("environment", config.Environment),
+		slog.String("service", config.ServiceName),
+	}
+
+	handler = handler.WithAttrs(defaultAttrs)
+	logger := slog.New(handler)
+
+	slog.SetLogLoggerLevel(level)
+	slog.SetDefault(logger)
 
 	return nil
 }

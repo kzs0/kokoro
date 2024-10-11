@@ -3,13 +3,13 @@ package koko
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/kzs0/kokoro/telemetry/logs"
 	"github.com/kzs0/kokoro/telemetry/metrics"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -122,7 +122,7 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 
 	r, err := newRecorder(operation)
 	if err != nil {
-		log.Debug().Err(err).Msg("failed to create metrics")
+		slog.Debug("failed to create metrics", slog.String("error", err.Error()))
 		return ctx, func(ctx *context.Context, err *error) {}
 	}
 
@@ -134,16 +134,16 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 			return
 		}
 
-		var level zerolog.Level
-		level, lerr := zerolog.ParseLevel(strings.ToLower(st.LogLevel))
+		var level slog.Level
+		level, lerr := logs.ParseLevel(st.LogLevel)
 		if lerr != nil {
-			log.Debug().Str("log_level", strings.ToLower(st.LogLevel)).
-				Msg("failed to parse log level, using defaults")
-			level = zerolog.DebugLevel
+			slog.Debug("failed to parse log level, using default",
+				slog.String("log_level", strings.ToUpper(st.LogLevel)))
+			level = slog.LevelDebug
 		}
 
-		if *err != nil && zerolog.WarnLevel > level {
-			level = zerolog.WarnLevel
+		if *err != nil && slog.LevelWarn > level {
+			level = slog.LevelWarn
 		}
 
 		span := trace.SpanFromContext(*ctx)
@@ -154,38 +154,40 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 			span.SetStatus(codes.Ok, "success")
 		}
 
-		logs := log.WithLevel(level).
-			Dur("duration", time.Since(start)).
-			Str("operation", operation)
+		attrs := []slog.Attr{
+			slog.Duration("duration", time.Since(start)),
+			slog.String("operation", operation),
+		}
 
 		for k, f := range st.Floats {
-			logs = logs.Float64(k, f)
+			attrs = append(attrs, slog.Float64(k, f))
 			r.AddLabels(metrics.WithLabel(k, fmt.Sprint(f)))
 		}
 		for k, i := range st.Ints {
-			logs = logs.Int64(k, i)
+			attrs = append(attrs, slog.Int64(k, i))
 			r.AddLabels(metrics.WithLabel(k, fmt.Sprint(i)))
 		}
 		for k, s := range st.Strs {
-			logs = logs.Str(k, s)
+			attrs = append(attrs, slog.String(k, s))
 			r.AddLabels(metrics.WithLabel(k, s))
 		}
 		for k, b := range st.Bools {
-			logs = logs.Bool(k, b)
+			attrs = append(attrs, slog.Bool(k, b))
 			r.AddLabels(metrics.WithLabel(k, fmt.Sprint(b)))
 		}
 
 		if *err != nil {
-			logs = logs.Err(*err)
+			attrs = append(attrs, slog.String("error", (*err).Error()))
 			span.RecordError(*err)
 		}
 
-		logs.Msg(operation)
+		slog.LogAttrs(*ctx, level, operation, attrs...)
 		span.End()
 
 		rerr := r.Record(*ctx, stop, *err == nil)
 		if rerr != nil {
-			log.Debug().Msg("failed to record metrics for operation")
+			slog.Debug("failed to record metrics for operation",
+				slog.String("operation", operation))
 		}
 	}
 

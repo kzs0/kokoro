@@ -2,11 +2,11 @@ package metrics
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	api "go.opentelemetry.io/otel/sdk/metric"
@@ -92,8 +92,10 @@ func Init(config Metrics, options ...FactoryOption) error {
 
 		err := server.ListenAndServe()
 		if err != nil {
-			log.Panic().Err(err).Int("port", config.MetricsPort).
-				Msg("failed to serve/failed while serving metrics")
+			slog.Error("failed to serve/failed while serving metrics",
+				slog.String("error", err.Error()), slog.Int("port", config.MetricsPort))
+
+			panic(err)
 		}
 	}()
 
