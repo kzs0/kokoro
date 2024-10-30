@@ -16,14 +16,14 @@ type Gauge interface {
 	Measure(ctx context.Context, value float64, opts ...MeasurementOption) error
 }
 
-type DefaultGauge struct {
+type defaultGauge struct {
 	gauge        metric.Float64Gauge
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
 	labelNames   map[string]struct{}
 }
 
-func (g *DefaultGauge) Measure(ctx context.Context, value float64, opts ...MeasurementOption) error {
+func (g *defaultGauge) Measure(ctx context.Context, value float64, opts ...MeasurementOption) error {
 	opt := metricOpts{}
 	for _, o := range opts {
 		o(&opt)
@@ -43,7 +43,7 @@ func (g *DefaultGauge) Measure(ctx context.Context, value float64, opts ...Measu
 	return nil
 }
 
-func (g *DefaultGauge) Load(opts ...MeasurementOption) {
+func (g *defaultGauge) Load(opts ...MeasurementOption) {
 	g.opts = append(g.opts, opts...)
 }
 
@@ -51,7 +51,7 @@ func (g *DefaultGauge) Load(opts ...MeasurementOption) {
 //
 // It will create a new gauge on first invocation, or return a cached gauge
 // previously created by name
-func (mf *DefaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Gauge, error) {
+func (mf *defaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Gauge, error) {
 	if g, ok := mf.gauges[name]; ok {
 		return g, nil
 	}
@@ -63,7 +63,7 @@ func (mf *DefaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Ga
 
 	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
 
-	gauge := &DefaultGauge{}
+	gauge := &defaultGauge{}
 
 	otelOpts := make([]metric.Float64GaugeOption, 0)
 	if opt.desc != "" {

@@ -16,14 +16,14 @@ type Histogram interface {
 	Record(ctx context.Context, measurement float64, opts ...MeasurementOption) error
 }
 
-type DefaultHistogram struct {
+type defaultHistogram struct {
 	histogram    metric.Float64Histogram
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
 	labelNames   map[string]struct{}
 }
 
-func (h *DefaultHistogram) Record(ctx context.Context, measurement float64, opts ...MeasurementOption) error {
+func (h *defaultHistogram) Record(ctx context.Context, measurement float64, opts ...MeasurementOption) error {
 	if measurement < 0 {
 		return fmt.Errorf("measurement cannot be negative")
 	}
@@ -47,14 +47,14 @@ func (h *DefaultHistogram) Record(ctx context.Context, measurement float64, opts
 	return nil
 }
 
-func (h *DefaultHistogram) Load(opts ...MeasurementOption) {
+func (h *defaultHistogram) Load(opts ...MeasurementOption) {
 	h.opts = append(h.opts, opts...)
 }
 
 // NewHistogram will produce a Histogram for observing values
 //
 // It will create a new histogram on first invocation, or return a cached histogram
-func (mf *DefaultMetricsFactory) NewHistogram(name string, opts ...MetricOption) (Histogram, error) {
+func (mf *defaultMetricsFactory) NewHistogram(name string, opts ...MetricOption) (Histogram, error) {
 	if h, ok := mf.histograms[name]; ok {
 		return h, nil
 	}
@@ -66,7 +66,7 @@ func (mf *DefaultMetricsFactory) NewHistogram(name string, opts ...MetricOption)
 
 	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
 
-	histogram := &DefaultHistogram{}
+	histogram := &defaultHistogram{}
 
 	otelOpts := make([]metric.Float64HistogramOption, 0)
 	if opt.desc != "" {

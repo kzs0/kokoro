@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/caarlos0/env/v11"
+	"github.com/kzs0/kokoro/env"
 	"github.com/kzs0/kokoro/telemetry/logs"
 	"github.com/kzs0/kokoro/telemetry/metrics"
 	"github.com/kzs0/kokoro/telemetry/traces"

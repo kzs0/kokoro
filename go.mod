@@ -3,7 +3,6 @@ module github.com/kzs0/kokoro
 go 1.22
 
 require (
-	github.com/caarlos0/env/v11 v11.1.0
 	github.com/prometheus/client_golang v1.19.1
 	go.opentelemetry.io/otel v1.28.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.50.0

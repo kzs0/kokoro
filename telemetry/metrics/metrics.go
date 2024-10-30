@@ -33,7 +33,7 @@ type Loadable interface {
 	Load(opts ...MeasurementOption)
 }
 
-type DefaultMetricsFactory struct {
+type defaultMetricsFactory struct {
 	config       Metrics
 	meter        metric.Meter
 	staticLabels map[string]string
@@ -65,7 +65,7 @@ func Init(config Metrics, options ...FactoryOption) error {
 		static[k] = v
 	}
 
-	DefaultFactory = &DefaultMetricsFactory{
+	DefaultFactory = &defaultMetricsFactory{
 		meter:        meter,
 		counters:     make(map[string]Counter),
 		histograms:   make(map[string]Histogram),
@@ -83,8 +83,8 @@ func Init(config Metrics, options ...FactoryOption) error {
 		server := &http.Server{
 			Addr:              fmt.Sprintf(":%d", config.MetricsPort),
 			Handler:           mux,
-			ReadTimeout:       30 * time.Second,
-			WriteTimeout:      30 * time.Second,
+			ReadTimeout:       15 * time.Second,
+			WriteTimeout:      15 * time.Second,
 			IdleTimeout:       360 * time.Second,
 			ReadHeaderTimeout: 5 * time.Second,
 			MaxHeaderBytes:    1 << 20, // 1 MB

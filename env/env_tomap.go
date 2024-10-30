@@ -12,5 +12,6 @@ func toMap(env []string) map[string]string {
 			r[p[0]] = p[1]
 		}
 	}
+
 	return r
 }

@@ -19,18 +19,18 @@ type Counter interface {
 	Add(ctx context.Context, addend float64, opts ...MeasurementOption) error
 }
 
-type DefaultCounter struct {
+type defaultCounter struct {
 	counter      metric.Float64Counter
 	staticLabels []attribute.KeyValue
 	opts         []MeasurementOption
 	labelNames   map[string]struct{}
 }
 
-func (c *DefaultCounter) Incr(ctx context.Context, opts ...MeasurementOption) error {
+func (c *defaultCounter) Incr(ctx context.Context, opts ...MeasurementOption) error {
 	return c.Add(ctx, 1, opts...)
 }
 
-func (c *DefaultCounter) Add(ctx context.Context, addend float64, opts ...MeasurementOption) error {
+func (c *defaultCounter) Add(ctx context.Context, addend float64, opts ...MeasurementOption) error {
 	if addend < 0 {
 		return fmt.Errorf("addend cannot be negative")
 	}
@@ -54,7 +54,7 @@ func (c *DefaultCounter) Add(ctx context.Context, addend float64, opts ...Measur
 	return nil
 }
 
-func (c *DefaultCounter) Load(opts ...MeasurementOption) {
+func (c *defaultCounter) Load(opts ...MeasurementOption) {
 	c.opts = append(c.opts, opts...)
 }
 
@@ -62,7 +62,7 @@ func (c *DefaultCounter) Load(opts ...MeasurementOption) {
 //
 // It will create a new counter on first invocation, or return a cached counter
 // previously created by name
-func (mf *DefaultMetricsFactory) NewCounter(name string, opts ...MetricOption) (Counter, error) {
+func (mf *defaultMetricsFactory) NewCounter(name string, opts ...MetricOption) (Counter, error) {
 	if c, ok := mf.counters[name]; ok {
 		return c, nil
 	}
@@ -74,7 +74,7 @@ func (mf *DefaultMetricsFactory) NewCounter(name string, opts ...MetricOption) (
 
 	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
 
-	counter := &DefaultCounter{}
+	counter := &defaultCounter{}
 
 	otelOpts := make([]metric.Float64CounterOption, 0)
 	if opt.desc != "" {
