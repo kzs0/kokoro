@@ -43,7 +43,7 @@ func ParseLevel(level string) (slog.Level, error) {
 }
 
 func Init(config Logs) error {
-	level, err := parseLevel(config.LogLevel)
+	level, err := ParseLevel(config.LogLevel)
 	if err != nil {
 		return errors.Join(ErrInitFailed, err)
 	}
