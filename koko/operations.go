@@ -43,7 +43,6 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 		if err != nil {
 			return err
 		}
-
 	} else {
 		failures, err := Counter(fmt.Sprintf("%s_failures", r.operation))
 		if err != nil {
@@ -122,7 +121,7 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 
 	r, err := newRecorder(operation)
 	if err != nil {
-		slog.Debug("failed to create metrics", slog.String("error", err.Error()))
+		slog.Warn("failed to create metrics", slog.String("error", err.Error()))
 		return ctx, func(ctx *context.Context, err *error) {}
 	}
 

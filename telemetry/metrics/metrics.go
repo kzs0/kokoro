@@ -66,6 +66,7 @@ func Init(config Metrics, options ...FactoryOption) error {
 	}
 
 	DefaultFactory = &defaultMetricsFactory{
+		config:       config,
 		meter:        meter,
 		counters:     make(map[string]Counter),
 		histograms:   make(map[string]Histogram),
