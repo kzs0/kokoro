@@ -28,20 +28,20 @@ func initStack(ctx context.Context) context.Context {
 	return context.WithValue(ctx, stackKey, &st)
 }
 
-func getStack(ctx context.Context) (stack, bool) {
-	st, ok := ctx.Value(stackKey).(stack)
+func getStack(ctx context.Context) (*stack, bool) {
+	st, ok := ctx.Value(stackKey).(*stack)
 	if !ok {
-		return stack{}, false
+		return &stack{}, false
 	}
 
 	return st, true
 }
 
-func saveStack(ctx context.Context, st stack) context.Context {
+func saveStack(ctx context.Context, st *stack) context.Context {
 	return context.WithValue(ctx, stackKey, st)
 }
 
-func pop(ctx context.Context) (stack, bool) {
-	st, ok := ctx.Value(stackKey).(stack)
+func pop(ctx context.Context) (*stack, bool) {
+	st, ok := ctx.Value(stackKey).(*stack)
 	return st, ok
 }

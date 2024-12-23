@@ -28,6 +28,9 @@ func (g *defaultGauge) Measure(ctx context.Context, value float64, opts ...Measu
 	for _, o := range opts {
 		o(&opt)
 	}
+	for _, o := range g.opts {
+		o(&opt)
+	}
 
 	labels := g.staticLabels
 	for k, v := range opt.labels {

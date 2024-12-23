@@ -40,15 +40,15 @@ func Init(opts ...Option) (context.Context, Done, error) {
 	def := Config{}
 	ctx := context.Background()
 
+	if opt.ctx != nil {
+		ctx = opt.ctx
+	}
+
 	if opt.config == def {
 		err := env.Parse(&config)
 		if err != nil {
 			return ctx, nil, errors.Join(ErrEnvLoadFailed, err)
 		}
-	}
-
-	if opt.ctx != nil {
-		ctx = opt.ctx
 	}
 
 	ctx, cancel := context.WithCancel(ctx)

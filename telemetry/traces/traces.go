@@ -13,10 +13,15 @@ import (
 
 // TODO endpoint for pushing traces and whether to use stdouttrace
 type Traces struct {
-	Style string `env:"TRACES_EXPORTER" envDefault:"CONSOLE"`
+	Enabled bool   `env:"TRACES_ENABLED" envDefault:"true"`
+	Style   string `env:"TRACES_EXPORTER" envDefault:"CONSOLE"`
 }
 
 func Init(ctx context.Context, config Traces) error {
+	if !config.Enabled {
+		return nil
+	}
+
 	var exporter api.SpanExporter
 	var err error
 
@@ -24,7 +29,7 @@ func Init(ctx context.Context, config Traces) error {
 	case "CONSOLE":
 		exporter, err = stdouttrace.New(stdouttrace.WithPrettyPrint())
 	default:
-		exporter, err = stdouttrace.New(stdouttrace.WithPrettyPrint())
+		// Default No Export
 	}
 
 	if err != nil {

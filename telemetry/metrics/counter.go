@@ -39,6 +39,9 @@ func (c *defaultCounter) Add(ctx context.Context, addend float64, opts ...Measur
 	for _, o := range opts {
 		o(&opt)
 	}
+	for _, o := range c.opts {
+		o(&opt)
+	}
 
 	labels := c.staticLabels
 	for k, v := range opt.labels {
