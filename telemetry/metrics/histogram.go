@@ -32,6 +32,9 @@ func (h *defaultHistogram) Record(ctx context.Context, measurement float64, opts
 	for _, o := range opts {
 		o(&opt)
 	}
+	for _, o := range h.opts {
+		o(&opt)
+	}
 
 	labels := h.staticLabels
 	for k, v := range opt.labels {

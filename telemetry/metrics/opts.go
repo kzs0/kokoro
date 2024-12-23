@@ -74,7 +74,7 @@ func WithHistogramBucketsBounds(buckets ...float64) MetricOption {
 // Subsequent WithLabelNames will overwrite the previous set of names passed in.
 // Labels passed in that were not provided as a LabelName will be ignored.
 // Labels not passed in that were expected will result in an error being returned. // TODO <- This could also just fill in -?
-func WithLabelNames(labels []string) MetricOption {
+func WithLabelNames(labels ...string) MetricOption {
 	return func(opts *metricOpts) {
 		opts.labelNames = labels
 	}

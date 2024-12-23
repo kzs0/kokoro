@@ -74,23 +74,23 @@ func (r *recorder) Record(ctx context.Context, dur time.Duration, success bool) 
 	return nil
 }
 
-func newRecorder(op string) (*recorder, error) {
-	successes, err := Counter(fmt.Sprintf("%s_success", op))
+func newRecorder(op string, opts ...metrics.MetricOption) (*recorder, error) {
+	successes, err := Counter(fmt.Sprintf("%s_success", op), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	failures, err := Counter(fmt.Sprintf("%s_failures", op))
+	failures, err := Counter(fmt.Sprintf("%s_failures", op), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	count, err := Counter(fmt.Sprintf("%s_count", op))
+	count, err := Counter(fmt.Sprintf("%s_count", op), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	timer, err := Histogram(fmt.Sprintf("%s_millis", op))
+	timer, err := Histogram(fmt.Sprintf("%s_millis", op), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,20 +106,20 @@ func newRecorder(op string) (*recorder, error) {
 
 type Done func(*context.Context, *error)
 
-type NoErrDone func(*context.Context)
+type DoneNoErr func(*context.Context)
 
 // Operation will bootstrap a short lived code path and report traces, metrics,
 // and logs automatically.
 //
 // An operation is assumed to have some failure condition due to side effects.
-func Operation(ctx context.Context, operation string) (context.Context, Done) {
+func Operation(ctx context.Context, operation string, opts ...metrics.MetricOption) (context.Context, Done) {
 	ctx = initStack(ctx)
 	start := time.Now()
 
 	tracer := otel.Tracer(tracerName)
 	ctx, _ = tracer.Start(ctx, operation)
 
-	r, err := newRecorder(operation)
+	r, err := newRecorder(operation, opts...)
 	if err != nil {
 		slog.Warn("failed to create metrics", slog.String("error", err.Error()))
 		return ctx, func(ctx *context.Context, err *error) {}
@@ -131,6 +131,11 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 		st, ok := pop(*ctx)
 		if !ok {
 			return
+		}
+
+		if err == nil {
+			var perr error
+			err = &perr
 		}
 
 		var level slog.Level
@@ -157,6 +162,9 @@ func Operation(ctx context.Context, operation string) (context.Context, Done) {
 			slog.Duration("duration", time.Since(start)),
 			slog.String("operation", operation),
 		}
+
+		*ctx = Register(*ctx, Int64("duration",
+			int64(time.Since(start).Milliseconds())), Str("operation", operation))
 
 		for k, f := range st.Floats {
 			attrs = append(attrs, slog.Float64(k, f))
@@ -209,7 +217,7 @@ func getCallerName() string {
 
 // Pure will initiate a new span that cannot encounter an error during
 // operation
-func Pure(ctx context.Context) (context.Context, NoErrDone) {
+func Pure(ctx context.Context) (context.Context, DoneNoErr) {
 	tracer := otel.Tracer(tracerName)
 	ctx, span := tracer.Start(ctx, getCallerName())
 
