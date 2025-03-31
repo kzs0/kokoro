@@ -75,7 +75,9 @@ func (mf *defaultMetricsFactory) NewCounter(name string, opts ...MetricOption) (
 		o(&opt)
 	}
 
-	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
+	if mf.config.ServiceName != "_" {
+		name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
+	}
 
 	counter := &defaultCounter{}
 

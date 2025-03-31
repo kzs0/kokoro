@@ -64,7 +64,9 @@ func (mf *defaultMetricsFactory) NewGauge(name string, opts ...MetricOption) (Ga
 		o(&opt)
 	}
 
-	name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
+	if mf.config.ServiceName != "_" {
+		name = strings.TrimSpace(strings.ReplaceAll(fmt.Sprintf("%s_%s", mf.config.ServiceName, name), "-", "_"))
+	}
 
 	gauge := &defaultGauge{}
 
